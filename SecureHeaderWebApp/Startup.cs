@@ -14,7 +14,9 @@ namespace SecureHeaderWebApp
     public class Startup
     {
         private const string XFrameOptKey = @"X-Frame-Options";
-        private const string XFrameOptValue = "DENY";
+        private const string XFrameOptValue = @"SAMEORIGIN";
+        private const string XssProtectionOptKey = @"X-Xss-Protection";
+        private const string XssProtectionOptValue = @"1; mode=block";
 
         public Startup(IConfiguration configuration)
         {
@@ -51,11 +53,31 @@ namespace SecureHeaderWebApp
                     context.Response.Headers.Add(XFrameOptKey, XFrameOptValue);
                 }
 
+                if (!context.Response.Headers.ContainsKey(XssProtectionOptKey))
+                {
+                    context.Response.Headers.Add(XssProtectionOptKey, XssProtectionOptValue);
+                }
+
                 await next();
             });
 
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = ctx =>
+                {
+                    var context = ctx.Context;
+                    if (!context.Response.Headers.ContainsKey(XFrameOptKey))
+                    {
+                        context.Response.Headers.Add(XFrameOptKey, XFrameOptValue);
+                    }
+
+                    if (!context.Response.Headers.ContainsKey(XssProtectionOptKey))
+                    {
+                        context.Response.Headers.Add(XssProtectionOptKey, XssProtectionOptValue);
+                    }
+                }
+            });
 
             app.UseRouting();
 
